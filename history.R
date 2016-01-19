@@ -71,6 +71,8 @@ training$capAve <- training$capitalAve
 selectNA <- rbinom(dim(training)[1],size=1,prob=0.05)==1
 training$capAve[selectNA] <- NA
 
+
+
 # Impute and standardize
 preObj <- preProcess(training[,-58],method="knnImpute")
 capAve <- predict(preObj,training[,-58])$capAve
