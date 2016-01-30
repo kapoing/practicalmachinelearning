@@ -1,11 +1,14 @@
 ---
 title: "Pratical Machine Learning Course Project"
 author: "Tiago Carvalho"
-date: "Tuesday, January 19, 2016"
+date: "Sunday, January 31, 2016"
 output: html_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+What you should submit
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+<http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
@@ -20,3 +23,21 @@ plot(cars)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Teste 3ª semana:
+library(AppliedPredictiveModeling)
+data(segmentationOriginal)
+library(caret)
+test <- segmentationOriginal[segmentationOriginal$Case=="Test",]
+train <- segmentationOriginal[segmentationOriginal$Case=="Train",]
+
+set.seed(125)
+modFit <- train(Class ~. , method="rpart", data=train)
+print(modFit$finalModel)
+library(rattle)
+fancyRpartPlot(modFit$finalModel)
+
+library(pgmm)
+data(olive)
+olive = olive[,-1]
+missClass = function(values,prediction){sum(((prediction > 0.5)*1) != values)/length(values)}
