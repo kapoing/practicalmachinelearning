@@ -4,40 +4,84 @@ author: "Tiago Carvalho"
 date: "Sunday, January 31, 2016"
 output: html_document
 ---
+## What you should submit
+The goal of your project is to predict the manner in which 6 participants did the Unilateral Dumbbell Biceps Curl exercise. 
+This is the "classe" variable in the training set (A to E), meaning: 
 
-What you should submit
+- **A** Exactly according to the specification
+- **B** Throwing the elbows to the front
+- **C** Lifting the dumbbell only halfway
+- **D** lowering the dumbbell only halfway
+- **E** Throwing the hips to the front
 
-The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
-<http://rmarkdown.rstudio.com>.
+You may use any of the other variables to predict with. You should create a report describing:
+- how you built your model
+- how you used cross validation
+- what you think the expected out of sample error is
+- why you made the choices you did. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+You will also use your prediction model to predict 20 different test cases.
 
-```{r}
-summary(cars)
+## Loading, correcting nulls & near zero variance, eliminating predictors that mught mess with the algorithms
+
+Lets start by loading the data and and removing any predictors that have too many (>= 90%) null values:
+
+```{r cache=TRUE}
+training_full = read.csv("pml-training.csv", na.strings = c('NA', '#DIV/0!'))
+testing_full = read.csv("pml-testing.csv", na.strings = c('NA', '#DIV/0!'))
+
+na_count <-function (x) { 
+    sapply(x, function(y) sum(is.na(y)))
+    }
+
+training_nas <- na_count(training_full) / nrow(training_full)
+training_clean <- training_full[,training_nas<.9] ## ignore predictors with too many null values
+
+testing__clean <- testing_full[,training_nas<.9] ## The same, for the Test set. The last column is not the same, but it still works because it won't be filtered
 ```
 
-You can also embed plots, for example:
+Now let's remove variables that we don't want to predict with, like the rownumber (X), the specific participant and the timestamps of the exercises (columns 1 to 5). 
+The X and the participant should be obvious - they can at most lead to overfitting, as there is no reason to believe they have predictive value. Removing the timestamps allow me to avoid time series complications (like sequential clustering).
 
-```{r, echo=FALSE}
-plot(cars)
+``` {r cache=TRUE}
+training_clean <- training_clean[, -(1:5)]
+testing__clean <- testing__clean[, -(1:5)]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Lastly, let's try to find predictors with variance too low to be considered:
 
-Teste 3ª semana:
-library(AppliedPredictiveModeling)
-data(segmentationOriginal)
+``` {r cache=TRUE}
 library(caret)
-test <- segmentationOriginal[segmentationOriginal$Case=="Test",]
-train <- segmentationOriginal[segmentationOriginal$Case=="Train",]
+nzv <- nearZeroVar(training_clean, saveMetrics = TRUE)
+nzv
+```
+new_window seams to be irrelevant. Let's check:
+``` {r cache=TRUE}
 
-set.seed(125)
-modFit <- train(Class ~. , method="rpart", data=train)
-print(modFit$finalModel)
-library(rattle)
-fancyRpartPlot(modFit$finalModel)
+summary(training_clean$new_window)
+training_clean <- training_clean[, -nzv$nzv]
+testing__clean <- testing__clean[, -nzv$nzv]
+```
 
-library(pgmm)
-data(olive)
-olive = olive[,-1]
-missClass = function(values,prediction){sum(((prediction > 0.5)*1) != values)/length(values)}
+## Model Building!!
+
+Ok, let's try to use random forests modeling, since it already has cross validation built in (as it slices the test data in order to build N models, and then keeps the best one):
+``` {r  cache=TRUE}
+set.seed(07051982)
+model_tree = train(classe ~ ., data = training_clean, method = 'rf', ntree = 200) # ntree defaults to 500, but that would take too long to compute on my laptop. Let's check if 200 is enough for a good result
+model_tree
+model_tree$finalModel
+
+```
+The chosen model has a out of bag error of 0.23%, which is actually really good!! Model found!
+
+## Predicting results on testing set
+
+[I'm leaving the echo off in order to keep the quiz results secret]
+``` {r echo=FALSE, cache=TRUE}
+pred_tree <-predict(model_tree,testing_full)
+pred_tree 
+```
+As expected, my prediction got it right in 20/20 questions. 
+The "as expected" part comes from the fact that the model already had marginal error rate when tested against the training set itself (again, random forest cross validate by design), and there was no reason to believe the train/test split was other than random. 
+
