@@ -69,7 +69,7 @@ Ok, let's try to use random forests modeling, since it already has cross validat
 ``` {r  cache=TRUE}
 set.seed(07051982)
 model_tree = train(classe ~ ., data = training_clean, method = 'rf', ntree = 200) # ntree defaults to 500, but that would take too long to compute on my laptop. Let's check if 200 is enough for a good result
-model_tree
+model_tree 
 model_tree$finalModel
 
 ```
@@ -77,10 +77,10 @@ The chosen model has a out of bag error of 0.23%, which is actually really good!
 
 ## Predicting results on testing set
 
-[I'm leaving the echo off in order to keep the quiz results secret]
-``` {r echo=FALSE, cache=TRUE}
+[I'm leaving the variable echo off in order to keep the quiz results secret]
+``` {r  cache=TRUE}
 pred_tree <-predict(model_tree,testing_full)
-pred_tree 
+#pred_tree 
 ```
 As expected, my prediction got it right in 20/20 questions. 
 The "as expected" part comes from the fact that the model already had marginal error rate when tested against the training set itself (again, random forest cross validate by design), and there was no reason to believe the train/test split was other than random. 

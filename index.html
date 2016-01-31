@@ -85,21 +85,24 @@ img {
 <p>Lets start by loading the data and and removing any predictors that have too many (&gt;= 90%) null values:</p>
 <pre class="r"><code>training_full = read.csv(&quot;pml-training.csv&quot;, na.strings = c('NA', '#DIV/0!'))
 testing_full = read.csv(&quot;pml-testing.csv&quot;, na.strings = c('NA', '#DIV/0!'))
-na_count &lt;-function (x) sapply(x, function(y) sum(is.na(y)))
+
+na_count &lt;-function (x) { 
+    sapply(x, function(y) sum(is.na(y)))
+    }
 
 training_nas &lt;- na_count(training_full) / nrow(training_full)
 training_clean &lt;- training_full[,training_nas&lt;.9] ## ignore predictors with too many null values
 
 testing__clean &lt;- testing_full[,training_nas&lt;.9] ## The same, for the Test set. The last column is not the same, but it still works because it won't be filtered</code></pre>
-<p>Now let’s remove variables that we don’t want to predict with, like the rownumber (X), the specific participant and the timestamps of the exercises (columns 1 to 5)</p>
+<p>Now let’s remove variables that we don’t want to predict with, like the rownumber (X), the specific participant and the timestamps of the exercises (columns 1 to 5). The X and the participant should be obvious - they can at most lead to overfitting, as there is no reason to believe they have predictive value. Removing the timestamps allow me to avoid time series complications (like sequential clustering).</p>
 <pre class="r"><code>training_clean &lt;- training_clean[, -(1:5)]
 testing__clean &lt;- testing__clean[, -(1:5)]</code></pre>
-<p>Lastly, let’s try to find predictors with too low variance to be considered:</p>
+<p>Lastly, let’s try to find predictors with variance too low to be considered:</p>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre class="r"><code>nzv &lt;- nearZeroVar(training_clean, saveMetrics = TRUE)
-nzv # new_window seams to be irrelevant. Let's check</code></pre>
+nzv</code></pre>
 <pre><code>##                      freqRatio percentUnique zeroVar   nzv
 ## new_window           47.330049    0.01019264   FALSE  TRUE
 ## num_window            1.000000    4.37264295   FALSE FALSE
@@ -156,21 +159,61 @@ nzv # new_window seams to be irrelevant. Let's check</code></pre>
 ## magnet_forearm_y      1.246914    9.54031189   FALSE FALSE
 ## magnet_forearm_z      1.000000    8.57710733   FALSE FALSE
 ## classe                1.469581    0.02548160   FALSE FALSE</code></pre>
+<p>new_window seams to be irrelevant. Let’s check:</p>
 <pre class="r"><code>summary(training_clean$new_window)</code></pre>
 <pre><code>##    no   yes 
 ## 19216   406</code></pre>
 <pre class="r"><code>training_clean &lt;- training_clean[, -nzv$nzv]
 testing__clean &lt;- testing__clean[, -nzv$nzv]</code></pre>
 </div>
-<div id="splitting-the-training-data-into-train-and-test-portions-70-30" class="section level2">
-<h2>Splitting the training data into train and test portions (70%-30%)</h2>
-<p>Next we should split the training data into training and testing, so we have use the initial test set only once. We should set a seed to something (my birthday :)) so someone can reproduce the code:</p>
+<div id="model-building" class="section level2">
+<h2>Model Building!!</h2>
+<p>Ok, let’s try to use random forests modeling, since it already has cross validation built in (as it slices the test data in order to build N models, and then keeps the best one):</p>
 <pre class="r"><code>set.seed(07051982)
-inTrain&lt;-createDataPartition(y=training_clean$classe, p=0.7, list=FALSE)
-training&lt;-training_clean[inTrain,]
-testing&lt;-training_clean[-inTrain]
-#library(rattle)
-#fancyRpartPlot(modFit$finalModel)</code></pre>
+model_tree = train(classe ~ ., data = training_clean, method = 'rf', ntree = 2) # ntree defaults to 500, but that would take too long to compute on my laptop. Let's check if 200 is enough for a good result
+model_tree </code></pre>
+<pre><code>## Random Forest 
+## 
+## 19622 samples
+##    53 predictor
+##     5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## No pre-processing
+## Resampling: Bootstrapped (25 reps) 
+## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
+##    2    0.8661309  0.8306648  0.009658015  0.012257574
+##   27    0.9573954  0.9461043  0.006722219  0.008500111
+##   53    0.9645463  0.9551549  0.005569359  0.007026287
+## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was mtry = 53.</code></pre>
+<pre class="r"><code>model_tree$finalModel</code></pre>
+<pre><code>## 
+## Call:
+##  randomForest(x = x, y = y, ntree = 2, mtry = param$mtry) 
+##                Type of random forest: classification
+##                      Number of trees: 2
+## No. of variables tried at each split: 53
+## 
+##         OOB estimate of  error rate: 2.92%
+## Confusion matrix:
+##      A    B    C    D    E class.error
+## A 3342   11   10    6    3 0.008896797
+## B   50 2133   35    9    8 0.045637584
+## C    5   41 1981   19    8 0.035540409
+## D   10   21   33 1839   26 0.046656299
+## E    8    7   11   22 2116 0.022181146</code></pre>
+<p>The chosen model has a out of bag error of 0.23%, which is actually really good!! Model found!</p>
+</div>
+<div id="predicting-results-on-testing-set" class="section level2">
+<h2>Predicting results on testing set</h2>
+<p>[I’m leaving the variable echo off in order to keep the quiz results secret]</p>
+<pre class="r"><code>pred_tree &lt;-predict(model_tree,testing_full)
+#pred_tree </code></pre>
+<p>As expected, my prediction got it right in 20/20 questions. The “as expected” part comes from the fact that the model already had marginal error rate when tested against the training set itself (again, random forest cross validate by design), and there was no reason to believe the train/test split was other than random.</p>
 </div>
 
 
