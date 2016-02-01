@@ -170,7 +170,7 @@ testing__clean &lt;- testing__clean[, -nzv$nzv]</code></pre>
 <h2>Model Building!!</h2>
 <p>Ok, let’s try to use random forests modeling, since it already has cross validation built in (as it slices the test data in order to build N models, and then keeps the best one):</p>
 <pre class="r"><code>set.seed(07051982)
-model_tree = train(classe ~ ., data = training_clean, method = 'rf', ntree = 2) # ntree defaults to 500, but that would take too long to compute on my laptop. Let's check if 200 is enough for a good result
+model_tree = train(classe ~ ., data = training_clean, method = 'rf', ntree = 200) # ntree defaults to 500, but that would take too long to compute on my laptop. Let's check if 200 is enough for a good result
 model_tree </code></pre>
 <pre><code>## Random Forest 
 ## 
@@ -183,29 +183,29 @@ model_tree </code></pre>
 ## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
 ## Resampling results across tuning parameters:
 ## 
-##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
-##    2    0.8661309  0.8306648  0.009658015  0.012257574
-##   27    0.9573954  0.9461043  0.006722219  0.008500111
-##   53    0.9645463  0.9551549  0.005569359  0.007026287
+##   mtry  Accuracy   Kappa      Accuracy SD   Kappa SD   
+##    2    0.9949192  0.9935723  0.0010222149  0.001292735
+##   27    0.9973440  0.9966401  0.0008083306  0.001022168
+##   53    0.9937197  0.9920552  0.0026038993  0.003294246
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 53.</code></pre>
+## The final value used for the model was mtry = 27.</code></pre>
 <pre class="r"><code>model_tree$finalModel</code></pre>
 <pre><code>## 
 ## Call:
-##  randomForest(x = x, y = y, ntree = 2, mtry = param$mtry) 
+##  randomForest(x = x, y = y, ntree = 200, mtry = param$mtry) 
 ##                Type of random forest: classification
-##                      Number of trees: 2
-## No. of variables tried at each split: 53
+##                      Number of trees: 200
+## No. of variables tried at each split: 27
 ## 
-##         OOB estimate of  error rate: 2.92%
+##         OOB estimate of  error rate: 0.15%
 ## Confusion matrix:
-##      A    B    C    D    E class.error
-## A 3342   11   10    6    3 0.008896797
-## B   50 2133   35    9    8 0.045637584
-## C    5   41 1981   19    8 0.035540409
-## D   10   21   33 1839   26 0.046656299
-## E    8    7   11   22 2116 0.022181146</code></pre>
+##      A    B    C    D    E  class.error
+## A 5578    1    0    0    1 0.0003584229
+## B    6 3785    5    1    0 0.0031603898
+## C    0    5 3417    0    0 0.0014611338
+## D    0    0    7 3208    1 0.0024875622
+## E    0    0    0    3 3604 0.0008317161</code></pre>
 <p>The chosen model has a out of bag error of 0.23%, which is actually really good!! Model found!</p>
 </div>
 <div id="predicting-results-on-testing-set" class="section level2">

@@ -63,7 +63,7 @@ training_clean <- training_clean[, -nzv$nzv]
 testing__clean <- testing__clean[, -nzv$nzv]
 ```
 
-## Model Building!!
+## Model Building!! 
 
 Ok, let's try to use random forests modeling, since it already has cross validation built in (as it slices the test data in order to build N models, and then keeps the best one):
 ``` {r  cache=TRUE}
