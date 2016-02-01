@@ -99,3 +99,28 @@ plot(training$age,training$wage,pch=19,cex=0.5)
 points(training$age,predict(lm1,newdata=training),col="red",pch=19,cex=0.5)
 predict(bsBasis,age=testing$age)
 #Preprocessing with Principal Components Analysis (PCA)
+
+
+
+
+Quizz 4
+install.packages("ElemStatLearn")
+install.packages("caret")
+
+library(ElemStatLearn)
+library(caret)
+install.packages("e1071")
+library(e1071)
+
+data(vowel.train)
+
+data(vowel.test)
+vowel.train$y <- as.factor(x = vowel.train$y)
+vowel.test$y <- as.factor(vowel.test$y)
+set.seed(33833)
+#modFitTree <- train(clusters ~.,data=subset(training,select=-c(Species)),method="rpart")
+modFitTree <- train(y~., data=vowel.train,method="rpart")
+predTree <- predict(modFitTree, vowel.test)
+modFitGbm <- train(y~. , data=vowel.train, method="gbm")
+predGbm <- predict(modFitGbm, vowel.test)
+
